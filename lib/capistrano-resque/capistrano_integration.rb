@@ -8,7 +8,7 @@ module CapistranoResque
 
         _cset(:workers, {"*" => 1})
         _cset(:resque_kill_signal, "QUIT")
-        _cset(:resque_polling_interval, 5)
+        _cset(:resque_options, {})
 
         def workers_roles
           return workers.keys if workers.first[1].is_a? Hash
@@ -25,6 +25,14 @@ module CapistranoResque
           end
         end
 
+        def stringify(hash)
+          a = ""
+          hash.each do |key, value|
+            a << "#{key}=#{value} "
+          end
+          a
+        end
+
         def status_command
           "if [ -e #{current_path}/tmp/pids/resque_work_1.pid ]; then \
             for f in $(ls #{current_path}/tmp/pids/resque_work*.pid); \
@@ -32,9 +40,9 @@ module CapistranoResque
            ;fi"
         end
 
-        def start_command(queue, pid,interval)
+        def start_command(queue, pid, options)
           "cd #{current_path} && RAILS_ENV=#{rails_env} QUEUE=\"#{queue}\" \
-           PIDFILE=#{pid} BACKGROUND=yes VERBOSE=1 INTERVAL=#{interval}\
+           PIDFILE=#{pid} BACKGROUND=yes VERBOSE=1 #{stringify options}\
            #{fetch(:bundle_cmd, "bundle")} exec rake environment resque:work"
         end
 
@@ -72,7 +80,7 @@ module CapistranoResque
                 puts "Starting #{number_of_workers} worker(s) with QUEUE: #{queue}"
                 number_of_workers.times do
                   pid = "./tmp/pids/resque_work_#{worker_id}.pid"
-                  run(start_command(queue, pid, resque_polling_interval), :roles => role)
+                  run(start_command(queue, pid, resque_options), :roles => role)
                   worker_id += 1
                 end
               end
