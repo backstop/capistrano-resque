@@ -8,6 +8,7 @@ module CapistranoResque
 
         _cset(:workers, {"*" => 1})
         _cset(:resque_kill_signal, "QUIT")
+        _cset(:resque_polling_interval, 5)
 
         def workers_roles
           return workers.keys if workers.first[1].is_a? Hash
@@ -31,9 +32,9 @@ module CapistranoResque
            ;fi"
         end
 
-        def start_command(queue, pid)
+        def start_command(queue, pid,interval)
           "cd #{current_path} && RAILS_ENV=#{rails_env} QUEUE=\"#{queue}\" \
-           PIDFILE=#{pid} BACKGROUND=yes VERBOSE=1 \
+           PIDFILE=#{pid} BACKGROUND=yes VERBOSE=1 INTERVAL=#{interval}\
            #{fetch(:bundle_cmd, "bundle")} exec rake environment resque:work"
         end
 
@@ -71,7 +72,7 @@ module CapistranoResque
                 puts "Starting #{number_of_workers} worker(s) with QUEUE: #{queue}"
                 number_of_workers.times do
                   pid = "./tmp/pids/resque_work_#{worker_id}.pid"
-                  run(start_command(queue, pid), :roles => role)
+                  run(start_command(queue, pid, resque_polling_interval), :roles => role)
                   worker_id += 1
                 end
               end
